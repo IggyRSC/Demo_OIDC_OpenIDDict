@@ -1,11 +1,13 @@
-﻿using System.Security.Claims;
+﻿using System.Reflection.Metadata.Ecma335;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using OpenIddict.Abstractions;
 
 namespace OIDCTestWithPage
 {
-    public class AuthorizationService
+    public class AuthorizationService 
     {
         public IDictionary<string, StringValues> ParseOAuthParameters(HttpContext httpContext, List<string>? excluding = null)
         {
@@ -64,6 +66,19 @@ namespace OIDCTestWithPage
             }
 
             return destinations;
+        }
+
+        public bool IsRequestWithIp(OpenIddictRequest request)
+        {
+            return request.GetParameter("is_ip")!=null;
+        }
+
+        public void Validate(OpenIddictRequest request)
+        {
+            if (IsRequestWithIp(request))
+            { return; }
+              
+
         }
 
     }

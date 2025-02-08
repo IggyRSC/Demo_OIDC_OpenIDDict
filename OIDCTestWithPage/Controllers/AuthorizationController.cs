@@ -50,7 +50,26 @@ namespace OIDCTestWithPage.Controllers
                 return BadRequest(new { error = "Cannot determine client IP." });
             }
 
+            var parameters = _authService.ParseOAuthParameters(HttpContext, new List<string> { Parameters.Prompt });
+            var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            if (!_authService.IsAuthenticated(result, request) && !request.HasPromptValue(PromptValues.Login))
+            {
 
+                if (request.Prompt == "none")
+                    return Forbid(
+                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                            properties: new AuthenticationProperties(new Dictionary<string, string?>
+                            {
+                                [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.UnauthorizedClient,
+                                [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
+                                    "Registration not found"
+                            }));
+
+                return Challenge(properties: new AuthenticationProperties
+                {
+                    RedirectUri = _authService.BuildRedirectUrl(HttpContext.Request, parameters)
+                }, new[] { CookieAuthenticationDefaults.AuthenticationScheme });
+            }
 
             if (!_allowedIps.Contains(clientIp))
             {
@@ -60,28 +79,6 @@ namespace OIDCTestWithPage.Controllers
             var application = await _applicationManager.FindByClientIdAsync(request.ClientId) ??
                               throw new InvalidOperationException("Details concerning the calling client application cannot be found.");
 
-            var parameters = _authService.ParseOAuthParameters(HttpContext, new List<string> { Parameters.Prompt });
-
-            var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-
-            // Check if user is authenticated
-
-
-
-
-            if (!_authService.IsAuthenticated(result, request))
-            {
-
-                //if (request.Prompt == "none")
-                //{
-                //    return Forbid(properties, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-                //}
-                return Challenge(properties: new AuthenticationProperties
-                {
-                    RedirectUri = _authService.BuildRedirectUrl(HttpContext.Request, parameters)
-                }, new[] { CookieAuthenticationDefaults.AuthenticationScheme });
-            }
 
             if (request.HasPromptValue(PromptValues.Login))
             {

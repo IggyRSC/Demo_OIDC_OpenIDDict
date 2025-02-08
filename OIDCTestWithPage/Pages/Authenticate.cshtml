@@ -1,5 +1,9 @@
 ﻿@page
 @model OIDCTestWithPage.Pages.AuthenticateModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Authenticate";
+}
 
 @*Please do not forget to add tag helper*@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
@@ -12,9 +16,37 @@ Authenticate
 <div>@Model.AuthStatus</div>
 <div>Return url: @Model.ReturnUrl</div>
 
+<div class="container border" style="padding:20x">
 <form method="post">
-    <input name="email" value="@Model.Email"/>
-    <input name="password" value="@Model.Password" />
+    <div class="form-group row">
+    <div class="col-3">
+            <label asp-for="Email"></label>
+    </div>
+    <div class="col-5">
+        <input type="text" asp-for="Email" class="form-control" />
+    </div>
+        </div>
+            <div class="form-group row">
+        <div class="col-3">
+            <label asp-for="Password"></label>
+        </div>
+        <div class="col-5">
+                <input type="text" asp-for="Password" class="form-control" />
+        </div>
+            </div>
 
-    <input type="submit" />
+        <div class="form-group row">
+            <div class="col-2">
+                <input type="Submit" class="btn btn-primary" value="Submit">
+            </div>
+            <div class="col-5">
+            </div>
+        </div>
+
+@*     <input name="email" value="@Model.Email"/>
+    <input name="password" value="@Model.Password" /> *@
+
+@*     <input type="submit" /> *@
+      
 </form>
+</div>
