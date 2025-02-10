@@ -56,7 +56,26 @@ namespace OIDCTestWithPage.Controllers
             var parameters = _authService.ParseOAuthParameters(HttpContext, new List<string> { Parameters.Prompt });
             var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
+            if (request.GetParameter("is_ip") != null)
+            {
+                var ipIdentity = new ClaimsIdentity(
+           authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+           nameType: Claims.Name,
+           roleType: Claims.Role);
 
+                ipIdentity.AddClaim(new Claim(Claims.Subject, "IsIp"));
+
+
+                ipIdentity
+                //.SetClaim("profile", "IsIp")
+                .SetClaim("IsIp", true)
+                .SetClaim(Claims.Subject, "IsIp")
+                .SetClaims(Claims.Role, new List<string> { "user", "admin" }.ToImmutableArray());
+
+                ipIdentity.SetDestinations(c => AuthorizationService.GetDestinations(ipIdentity, c));
+
+                return SignIn(new ClaimsPrincipal(ipIdentity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            }
 
             if (!_authService.IsAuthenticated(result, request) && !request.HasPromptValue(PromptValues.Login))
             {
@@ -175,7 +194,7 @@ namespace OIDCTestWithPage.Controllers
         [HttpGet("~/connect/userinfo"), HttpPost("~/connect/userinfo")]
         public async Task<IActionResult> Userinfo()
         {
-            if (User.GetClaim(Claims.Subject) != Consts.Email /*&& User.GetClaim(Claims.Subject)!="IsIp"*/)
+            if (User.GetClaim(Claims.Subject) != Consts.Email && User.GetClaim(Claims.Subject) != "IsIp")
             {
                 return Challenge(
                     authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
