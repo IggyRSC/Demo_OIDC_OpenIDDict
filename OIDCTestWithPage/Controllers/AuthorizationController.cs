@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace OIDCTestWithPage.Controllers
 {
@@ -41,6 +42,7 @@ namespace OIDCTestWithPage.Controllers
 
             var tstpr = request.Prompt;
 
+
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
 
             var tstIsIp = request.GetParameter("is_ip");
@@ -50,8 +52,12 @@ namespace OIDCTestWithPage.Controllers
                 return BadRequest(new { error = "Cannot determine client IP." });
             }
 
+
             var parameters = _authService.ParseOAuthParameters(HttpContext, new List<string> { Parameters.Prompt });
             var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+
+
             if (!_authService.IsAuthenticated(result, request) && !request.HasPromptValue(PromptValues.Login))
             {
 
@@ -169,7 +175,7 @@ namespace OIDCTestWithPage.Controllers
         [HttpGet("~/connect/userinfo"), HttpPost("~/connect/userinfo")]
         public async Task<IActionResult> Userinfo()
         {
-            if (User.GetClaim(Claims.Subject) != Consts.Email)
+            if (User.GetClaim(Claims.Subject) != Consts.Email /*&& User.GetClaim(Claims.Subject)!="IsIp"*/)
             {
                 return Challenge(
                     authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,

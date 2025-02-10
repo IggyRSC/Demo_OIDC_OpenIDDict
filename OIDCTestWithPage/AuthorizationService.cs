@@ -1,9 +1,13 @@
-﻿using System.Reflection.Metadata.Ecma335;
+﻿using System.Collections.Immutable;
+using System.Reflection.Metadata.Ecma335;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
+using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
+using OpenIddict.Server.AspNetCore;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace OIDCTestWithPage
 {
@@ -67,6 +71,31 @@ namespace OIDCTestWithPage
 
             return destinations;
         }
+        //public async Task  ConnectSilently(OpenIddictRequest request, AuthenticateResult result)
+        //{
+            
+            
+        //    var ipIdentity = new ClaimsIdentity(
+        //        authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+        //        nameType: Claims.Name,
+        //        roleType: Claims.Role);
+
+        //    ipIdentity.AddClaim(new Claim(Claims.Subject, "IsIp"));
+
+
+        //    ipIdentity
+        //    //.SetClaim("profile", "IsIp")
+        //    .SetClaim("IsIp", true)
+        //    .SetClaim(Claims.Subject, "IsIp")
+        //    .SetClaims(Claims.Role, new List<string> { "user", "admin" }.ToImmutableArray());
+
+        //    ipIdentity.SetDestinations(c => AuthorizationService.GetDestinations(ipIdentity, c));
+        //    result.Principal.SetClaim(Claims.Locality, "IsIP");
+
+        //    return SignIn(new ClaimsPrincipal(ipIdentity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+        //}
+
 
         public bool IsRequestWithIp(OpenIddictRequest request)
         {
