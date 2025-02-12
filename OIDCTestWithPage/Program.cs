@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OIDCTestWithPage;
 using OIDCTestWithPage.Models;
+using OpenIddict.Server;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,7 +31,7 @@ builder.Services.AddOpenIddict()
                 .SetTokenEndpointUris("connect/token")
                 .SetUserInfoEndpointUris("connect/userinfo");
 
-        options.RegisterScopes(Scopes.Email, Scopes.Profile, Scopes.Roles);
+        options.RegisterScopes(Scopes.Email, Scopes.Profile, Scopes.Roles, Scopes.Address);
 
         options.AllowAuthorizationCodeFlow();
         options.AcceptAnonymousClients();
@@ -46,6 +47,8 @@ builder.Services.AddOpenIddict()
                 .EnableEndSessionEndpointPassthrough()
                 .EnableTokenEndpointPassthrough()
                 .EnableUserInfoEndpointPassthrough();
+
+
     });
 
 builder.Services.AddTransient<AuthorizationService>();
@@ -71,7 +74,7 @@ builder.Services.AddCors(options =>
         policy.WithOrigins("http://localhost:5173")
             .AllowAnyHeader();
 
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins("http://localhost:7129")
      .AllowAnyHeader();
     });
 });

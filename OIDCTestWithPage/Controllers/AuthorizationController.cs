@@ -15,9 +15,14 @@ using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Net.Sockets;
+using OIDCTestWithPage.Pages;
+using AspNet.Security.OpenIdConnect.Primitives;
+using System.Security.Principal;
 
 namespace OIDCTestWithPage.Controllers
 {
+
     [ApiController]
     public class AuthorizationController : Controller
     {
@@ -25,6 +30,9 @@ namespace OIDCTestWithPage.Controllers
         private static readonly HashSet<string> _allowedIps = new() { "127.0.0.1", "::1" }; // Whitelisted IPs
         private readonly AuthorizationService _authService;
         private readonly IOpenIddictScopeManager _scopeManager;
+
+
+
 
         public AuthorizationController(IOpenIddictApplicationManager applicationManager, AuthorizationService authService, IOpenIddictScopeManager scopeManager)
         {
@@ -40,12 +48,9 @@ namespace OIDCTestWithPage.Controllers
             var request = HttpContext.GetOpenIddictServerRequest() ??
                                     throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
 
-            var tstpr = request.Prompt;
-
-
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-            var tstIsIp = request.GetParameter("is_ip");
+            _authService.IsIpSet(request.GetParameter("is_ip")!=null);
 
             if (clientIp == null)
             {
@@ -58,42 +63,49 @@ namespace OIDCTestWithPage.Controllers
 
             if (request.GetParameter("is_ip") != null)
             {
+                //AuthenticateResult success = result.Succeeded == false ? result : null;
+                _authService.IsAuthenticated(result, request);
+                //var ipuserId = result.Principal.FindFirst(ClaimTypes.Email)!.Value;
                 var ipIdentity = new ClaimsIdentity(
-           authenticationType: TokenValidationParameters.DefaultAuthenticationType,
-           nameType: Claims.Name,
-           roleType: Claims.Role);
-
-                ipIdentity.AddClaim(new Claim(Claims.Subject, "IsIp"));
-
+                    authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+                    nameType: Claims.Name,
+                    roleType: Claims.Role);
 
                 ipIdentity
-                //.SetClaim("profile", "IsIp")
-                .SetClaim("IsIp", true)
-                .SetClaim(Claims.Subject, "IsIp")
+                .SetClaim(Claims.Subject, "email")
+                .SetClaim(Claims.Email, "email")
+                .SetClaim(Claims.Name, "ChuckNorris")
                 .SetClaims(Claims.Role, new List<string> { "user", "admin" }.ToImmutableArray());
 
-                ipIdentity.SetDestinations(c => AuthorizationService.GetDestinations(ipIdentity, c));
+               
 
+                //add location to the id_token
+                ipIdentity.SetScopes(request.GetScopes());
+                ipIdentity.SetResources(await _scopeManager.ListResourcesAsync(ipIdentity.GetScopes()).ToListAsync());
+
+                ipIdentity.SetDestinations(c => AuthorizationService.GetDestinations(ipIdentity, c));
                 return SignIn(new ClaimsPrincipal(ipIdentity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             }
 
             if (!_authService.IsAuthenticated(result, request) && !request.HasPromptValue(PromptValues.Login))
             {
 
-                if (request.Prompt == "none")
-                    return Forbid(
-                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-                            properties: new AuthenticationProperties(new Dictionary<string, string?>
-                            {
-                                [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.UnauthorizedClient,
-                                [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
-                                    "Registration not found"
-                            }));
-
-                return Challenge(properties: new AuthenticationProperties
+                if (request.Prompt != "none")
                 {
-                    RedirectUri = _authService.BuildRedirectUrl(HttpContext.Request, parameters)
-                }, new[] { CookieAuthenticationDefaults.AuthenticationScheme });
+                    return Challenge(properties: new AuthenticationProperties
+                    {
+                        RedirectUri = _authService.BuildRedirectUrl(HttpContext.Request, parameters)
+                    }, new[] { CookieAuthenticationDefaults.AuthenticationScheme });
+                }
+
+                return Forbid(
+                                authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                                 properties: new AuthenticationProperties(new Dictionary<string, string?>
+                              {
+                                    [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.UnauthorizedClient,
+                                    [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
+                                    "Registration not found"
+                                }));
             }
 
             if (!_allowedIps.Contains(clientIp))
@@ -127,6 +139,8 @@ namespace OIDCTestWithPage.Controllers
                 return Redirect(consentRedirectUrl);
             }
 
+
+
             var userId = result.Principal.FindFirst(ClaimTypes.Email)!.Value;
 
             var identity = new ClaimsIdentity(
@@ -141,14 +155,13 @@ namespace OIDCTestWithPage.Controllers
 
             identity.SetScopes(request.GetScopes());
             identity.SetResources(await _scopeManager.ListResourcesAsync(identity.GetScopes()).ToListAsync());
-
             identity.SetDestinations(c => AuthorizationService.GetDestinations(identity, c));
 
             return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
 
         }
 
-        [HttpPost("~/connect/token")]
+        [HttpPost("~/connect/token"), Produces("application/json")]
         public async Task<IActionResult> Exchange()
         {
             var request = HttpContext.GetOpenIddictServerRequest() ??
@@ -163,6 +176,70 @@ namespace OIDCTestWithPage.Controllers
 
             var userId = result.Principal.GetClaim(Claims.Subject);
 
+            if (result.Principal.GetClaim(Claims.Name) != Consts.Email)
+            {
+                var testIdentity = new ClaimsIdentity(result.Principal.Claims,
+                                                      authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+                                                      nameType: Claims.Name,
+                                                      roleType: Claims.Role);
+
+                testIdentity.SetClaim(Claims.Subject, userId)
+                            .SetClaim(Claims.Email, "Kicks")
+                            .SetClaim(Claims.Name, "ChuckNorris")
+                            .SetClaims(Claims.Role, new List<string> { "user", "admin" }.ToImmutableArray());
+
+
+            
+                //////////////////////Chat gpt //////////////////////////
+                //var testIdentity = new ClaimsIdentity(result.Principal.Claims,
+                //                                     authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+                //                                      nameType: Claims.Name,
+                //                                      roleType: Claims.Role);
+                //testIdentity.SetClaim(Claims.Email, userId)
+                //.SetClaim(Claims.Name, userId)
+                //.SetClaims(Claims.Role, new List<string> { "user", "admin" }.ToImmutableArray());
+                //testIdentity.SetClaim(Claims.Subject, userId)
+                //            .SetClaim(Claims.Email, "Kicks")
+                //            .SetClaim(Claims.Name, "ChuckNorris")
+                //            .SetClaims(Claims.Role, new List<string> { "user", "admin" }.ToImmutableArray());
+
+                //foreach (var claim in testIdentity.Claims)
+                //{
+                //    claim.SetDestinations(OpenIddictConstants.Destinations.AccessToken);
+                //}
+
+
+
+                ////testIdentity.SetScopes(result.GetScopes());
+                //testIdentity.AddClaim("custom_claim", "custom_value");
+
+                //// Set necessary scopes
+                ////principal.SetScopes(new[]
+                ////{
+                ////    OpenIddictConstants.Scopes.OpenId,
+                ////    OpenIddictConstants.Scopes.Profile
+                ////});
+                //// Set destinations (where the claims should be sent)
+                //testIdentity.AddClaim(OpenIddictConstants.Claims.Subject, "user-id-1234");
+                //foreach (var claim in testIdentity.Claims)
+                //{
+                //    claim.SetDestinations(OpenIddictConstants.Destinations.IdentityToken);
+                //}
+                ////////////////////// END Chat gpt //////////////////////////
+                //var Ip_identity = (ClaimsIdentity)result.Principal.Identity;
+                //  var officeClaim = new Claim("office", "Test User", ClaimValueTypes.Integer);
+
+                //testIdentity.SetDestinations(OpenIdConnectConstants.Destinations.AccessToken, OpenIdConnectConstants.Destinations.IdentityToken);
+
+                testIdentity.SetDestinations(c => AuthorizationService.GetDestinations(testIdentity, c));
+                var officeClaim = new Claim("Walker", "Texas Ranger", ClaimValueTypes.Integer);
+                officeClaim.SetDestinations(OpenIddictConstants.Destinations.IdentityToken);
+                testIdentity.AddClaim(officeClaim);
+                return SignIn(new ClaimsPrincipal(testIdentity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            }
+
+
+            
             if (string.IsNullOrEmpty(userId))
             {
                 return Forbid(
@@ -180,6 +257,8 @@ namespace OIDCTestWithPage.Controllers
                 nameType: Claims.Name,
                 roleType: Claims.Role);
 
+
+
             identity.SetClaim(Claims.Subject, userId)
                 .SetClaim(Claims.Email, userId)
                 .SetClaim(Claims.Name, userId)
@@ -188,13 +267,15 @@ namespace OIDCTestWithPage.Controllers
             identity.SetDestinations(c => AuthorizationService.GetDestinations(identity, c));
 
             return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+            
         }
 
         [Authorize(AuthenticationSchemes = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)]
         [HttpGet("~/connect/userinfo"), HttpPost("~/connect/userinfo")]
         public async Task<IActionResult> Userinfo()
         {
-            if (User.GetClaim(Claims.Subject) != Consts.Email && User.GetClaim(Claims.Subject) != "IsIp")
+            if (User.GetClaim(Claims.Subject) != Consts.Email && !_authService.IsIpGetter())
             {
                 return Challenge(
                     authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
@@ -217,7 +298,16 @@ namespace OIDCTestWithPage.Controllers
                 claims[Claims.Email] = Consts.Email;
             }
 
+
             return Ok(claims);
+        }
+
+        [HttpGet("welcome")]
+        public IActionResult Welcome(string name, int numTimes = 1)
+        {
+            ViewData["Message"] = "Hello " + name;
+            ViewData["NumTimes"] = numTimes;
+            return View();
         }
 
         [HttpGet("~/connect/logout")]

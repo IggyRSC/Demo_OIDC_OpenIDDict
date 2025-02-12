@@ -2,8 +2,8 @@
 {
     public class Consts
     {
-        public const string Email = "email";
-        public const string Password = "password";
+        public const string Email = "Texas@email";
+        public const string Password = "kicks";
 
         public const string ConsentNaming = "consent";
         public const string GrantAccessValue = "Grant";

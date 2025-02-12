@@ -13,6 +13,8 @@ namespace OIDCTestWithPage
 {
     public class AuthorizationService 
     {
+        public bool IsIp { get; set; }
+        private List<bool>? res=new List<bool>();
         public IDictionary<string, StringValues> ParseOAuthParameters(HttpContext httpContext, List<string>? excluding = null)
         {
             excluding ??= new List<string>();
@@ -34,9 +36,26 @@ namespace OIDCTestWithPage
             return url;
         }
 
+        public void IsIpSet(bool input)
+        {
+            res.Add(input);
+        }
+
+        public bool IsIpGetter()
+        {
+            if (res.Count == 0)
+                res.Add(true);
+            return res.First();
+        }
+
         public bool IsAuthenticated(AuthenticateResult authenticateResult, OpenIddictRequest request)
         {
-            if (!authenticateResult.Succeeded)
+            if (IsIpGetter())
+            {
+                return true;
+            }
+
+            if (!authenticateResult.Succeeded  )
             {
                 return false;
             }
@@ -55,6 +74,7 @@ namespace OIDCTestWithPage
 
             return true;
         }
+
         public static List<string> GetDestinations(ClaimsIdentity identity, Claim claim)
         {
             var destinations = new List<string>();
@@ -71,6 +91,7 @@ namespace OIDCTestWithPage
 
             return destinations;
         }
+
         //public async Task  ConnectSilently(OpenIddictRequest request, AuthenticateResult result)
         //{
             
