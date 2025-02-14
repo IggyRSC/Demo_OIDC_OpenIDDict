@@ -71,13 +71,17 @@ namespace OIDCTestWithPage.Controllers
                     nameType: Claims.Name,
                     roleType: Claims.Role);
 
-                ipIdentity
-                .SetClaim(Claims.Subject, "email")
-                .SetClaim(Claims.Email, "email")
-                .SetClaim(Claims.Name, "ChuckNorris")
-                .SetClaims(Claims.Role, new List<string> { "user", "admin" }.ToImmutableArray());
+                //ipIdentity
+                //.SetClaim(Claims.Subject, "email")
+                //.SetClaim(Claims.Email, "email")
+                //.SetClaim(Claims.Name, "ChuckNorris")
+                //.SetClaims(Claims.Role, new List<string> { "user", "admin" }.ToImmutableArray());
 
-               
+                ipIdentity.SetClaim(Claims.Subject, "Texas@email")
+                    .SetClaim(Claims.Email, "Texas@email")
+                    .SetClaim(Claims.Name, "ChuckNorris")
+                    .SetClaims(Claims.Role, new List<string> { "user", "admin" }.ToImmutableArray());
+
 
                 //add location to the id_token
                 ipIdentity.SetScopes(request.GetScopes());
@@ -179,17 +183,28 @@ namespace OIDCTestWithPage.Controllers
             if (result.Principal.GetClaim(Claims.Name) != Consts.Email)
             {
                 var testIdentity = new ClaimsIdentity(result.Principal.Claims,
-                                                      authenticationType: TokenValidationParameters.DefaultAuthenticationType,
-                                                      nameType: Claims.Name,
-                                                      roleType: Claims.Role);
+                    authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+                    nameType: Claims.Name,
+                    roleType: Claims.Role);
+
 
                 testIdentity.SetClaim(Claims.Subject, userId)
-                            .SetClaim(Claims.Email, "Kicks")
-                            .SetClaim(Claims.Name, "ChuckNorris")
-                            .SetClaims(Claims.Role, new List<string> { "user", "admin" }.ToImmutableArray());
+                    .SetClaim(Claims.Email, userId)
+                    .SetClaim(Claims.Name, userId)
+                    .SetClaims(Claims.Role, new List<string> { "user", "admin" }.ToImmutableArray());
 
 
-            
+                testIdentity.SetDestinations(c => AuthorizationService.GetDestinations(testIdentity, c));
+                var officeClaim = new Claim("Walker", "Texas Ranger", ClaimValueTypes.Integer);
+                var locationClaim = new Claim("Location", HttpContext.Connection.RemoteIpAddress?.ToString(), ClaimValueTypes.Integer);
+                officeClaim.SetDestinations(OpenIddictConstants.Destinations.IdentityToken);
+                locationClaim.SetDestinations(OpenIddictConstants.Destinations.IdentityToken);
+                testIdentity.AddClaim(officeClaim);
+                testIdentity.AddClaim(locationClaim);
+
+                //testIdentity.SetDestinations(c => AuthorizationService.GetDestinations(testIdentity, c));
+                return SignIn(new ClaimsPrincipal(testIdentity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
                 //////////////////////Chat gpt //////////////////////////
                 //var testIdentity = new ClaimsIdentity(result.Principal.Claims,
                 //                                     authenticationType: TokenValidationParameters.DefaultAuthenticationType,
@@ -231,11 +246,11 @@ namespace OIDCTestWithPage.Controllers
 
                 //testIdentity.SetDestinations(OpenIdConnectConstants.Destinations.AccessToken, OpenIdConnectConstants.Destinations.IdentityToken);
 
-                testIdentity.SetDestinations(c => AuthorizationService.GetDestinations(testIdentity, c));
-                var officeClaim = new Claim("Walker", "Texas Ranger", ClaimValueTypes.Integer);
-                officeClaim.SetDestinations(OpenIddictConstants.Destinations.IdentityToken);
-                testIdentity.AddClaim(officeClaim);
-                return SignIn(new ClaimsPrincipal(testIdentity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+                //testIdentity.SetDestinations(c => AuthorizationService.GetDestinations(testIdentity, c));
+                //var officeClaim = new Claim("Walker", "Texas Ranger", ClaimValueTypes.Integer);
+                //officeClaim.SetDestinations(OpenIddictConstants.Destinations.IdentityToken);
+                //testIdentity.AddClaim(officeClaim);
+
             }
 
 
